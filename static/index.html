@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Manim Compiler & Studio</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Monaco Editor Loader -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">M</div>
+      <div>
+        <span class="brand-title">Manim Studio</span>
+        <span class="brand-badge">Online Compiler</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <!-- Templates -->
+      <div class="control-group">
+        <label class="control-label" for="template-select">Template:</label>
+        <select id="template-select">
+          <option value="">Loading templates...</option>
+        </select>
+      </div>
+
+      <!-- Quality -->
+      <div class="control-group">
+        <label class="control-label" for="quality-select">Quality:</label>
+        <select id="quality-select">
+          <option value="low" selected>Draft (480p, 15fps)</option>
+          <option value="medium">Medium (720p, 30fps)</option>
+          <option value="high">High (1080p, 60fps)</option>
+          <option value="4k">4K (2160p, 60fps)</option>
+        </select>
+      </div>
+
+      <!-- Target Scene -->
+      <div class="control-group">
+        <label class="control-label" for="scene-select">Scene:</label>
+        <select id="scene-select">
+          <option value="">Auto Detect</option>
+        </select>
+      </div>
+
+      <!-- Output Format -->
+      <div class="control-group">
+        <label class="control-label" for="format-select">Format:</label>
+        <select id="format-select">
+          <option value="mp4" selected>MP4 Video</option>
+          <option value="gif">GIF Animation</option>
+        </select>
+      </div>
+
+      <!-- Run Action -->
+      <button id="btn-run" class="btn btn-primary" title="Shortcut: Ctrl + Enter">
+        <span id="run-icon">▶</span>
+        <span id="run-label">Render</span>
+      </button>
+
+      <!-- Download Button -->
+      <button id="btn-download" class="btn btn-secondary" disabled title="Download rendered animation">
+        <span>⬇ Download</span>
+      </button>
+
+      <!-- Help / Docs -->
+      <button id="btn-help" class="btn btn-secondary" title="Cheatsheet & Docs">
+        <span>📖 Cheat Sheet</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Left Pane: Editor -->
+    <div class="pane left-pane">
+      <div class="pane-header">
+        <div class="pane-title">
+          <span>Python / Manim Editor</span>
+        </div>
+        <div class="controls">
+          <button id="btn-format" class="icon-btn" title="Format Code">🧹 Format</button>
+          <button id="btn-copy" class="icon-btn" title="Copy Code">📋 Copy</button>
+        </div>
+      </div>
+      <div class="editor-wrapper">
+        <div id="editor"></div>
+      </div>
+      <div class="editor-footer">
+        <div id="editor-status" class="status-badge">
+          <span class="status-indicator"></span>
+          <span id="status-text">Ready</span>
+        </div>
+        <div id="cursor-pos">Ln 1, Col 1</div>
+      </div>
+    </div>
+
+    <!-- Right Pane: Preview & Console -->
+    <div class="pane right-pane">
+      <!-- Top: Video Stage -->
+      <div class="stage-area" id="stage-area">
+        <!-- Placeholder -->
+        <div id="stage-placeholder" class="stage-placeholder">
+          <div class="stage-placeholder-icon">🎬</div>
+          <h3>Animation Canvas</h3>
+          <p>Click <strong>Render</strong> or press <strong>Ctrl + Enter</strong> to compile and animate your scene.</p>
+        </div>
+
+        <!-- Video Player -->
+        <video id="video-player" class="video-player" controls playsinline loop style="display: none;"></video>
+        
+        <!-- GIF Player -->
+        <img id="gif-player" class="video-player" alt="Rendered GIF" style="display: none;" />
+
+        <!-- Overlay Spinner during compile -->
+        <div id="render-overlay" class="rendering-overlay" style="display: none;">
+          <div class="spinner"></div>
+          <div class="rendering-text" id="render-status-text">Compiling animation...</div>
+          <div class="progress-container">
+            <div class="progress-bar" id="render-progress-bar"></div>
+          </div>
+          <div id="render-timer" style="font-size: 0.8rem; color: #94a3b8;">0.0s elapsed</div>
+        </div>
+      </div>
+
+      <!-- Bottom: Console -->
+      <div class="console-area">
+        <div class="console-header">
+          <span class="console-title">Output & Compiler Terminal</span>
+          <div class="console-actions">
+            <button id="btn-clear-console" class="icon-btn" title="Clear Console">🗑️ Clear</button>
+          </div>
+        </div>
+        <div class="console-body" id="console-body">
+          <div class="log-line info">🚀 Online Manim Compiler Ready. Pick a template or write your code!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cheat Sheet Modal -->
+  <div class="modal-overlay" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Manim Cheat Sheet & Quick Reference</h3>
+        <button id="btn-close-modal" class="icon-btn" style="font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4>Basic Scene Skeleton</h4>
+        <pre><code>from manim import *
+
+class MyScene(Scene):
+    def construct(self):
+        circle = Circle(radius=1.0, color=BLUE)
+        self.play(Create(circle))
+        self.wait(1)
+</code></pre>
+        <h4>Common Mobjects (Objects)</h4>
+        <p>
+          <code>Circle(radius=...)</code>, <code>Square(side_length=...)</code>, <code>Rectangle(width=..., height=...)</code>,
+          <code>Text("Hello", font_size=...)</code>, <code>MathTex(r"e^{i\pi} + 1 = 0")</code>,
+          <code>Axes(x_range=[...], y_range=[...])</code>, <code>Dot()</code>, <code>Line(start, end)</code>, <code>Arrow(start, end)</code>
+        </p>
+        
+        <h4>Essential Animations</h4>
+        <p>
+          <code>self.play(Create(mobj))</code>, <code>self.play(FadeIn(mobj))</code>, <code>self.play(FadeOut(mobj))</code><br/>
+          <code>self.play(Transform(mobj1, mobj2))</code>, <code>self.play(ReplacementTransform(mobj1, mobj2))</code><br/>
+          <code>self.play(Rotate(mobj, angle=PI/2))</code>, <code>self.play(mobj.animate.shift(UP * 2))</code>
+        </p>
+
+        <h4>Hotkeys</h4>
+        <p>
+          <code>Ctrl + Enter</code>: Compile & Render current animation<br/>
+          <code>Ctrl + Space</code>: Monaco editor code autocompletion
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monaco loader script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
